@@ -9,7 +9,7 @@ from groq import Groq
 from dotenv import load_dotenv
 
 # Load env
-load_dotenv("/Users/sirikademani/runiq-ai/.env")
+load_dotenv()
 
 # Page config
 st.set_page_config(
@@ -21,8 +21,8 @@ st.set_page_config(
 # Load data and models (cached so it only loads once)
 @st.cache_resource
 def load_resources():
-    runs   = pd.read_parquet("/Users/sirikademani/runiq-ai/data/runs_clean.parquet")
-    db     = lancedb.connect("/Users/sirikademani/runiq-ai/data/lancedb")
+    runs   = pd.read_parquet("data/runs_clean.parquet")
+    db     = lancedb.connect("data/lancedb")
     table  = db.open_table("runs")
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
     return runs, table, client
