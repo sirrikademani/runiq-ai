@@ -74,7 +74,7 @@ def build_dataframe(activities: list) -> pd.DataFrame:
     """Convert raw Strava API activities to clean DataFrame."""
     runs = []
     for a in activities:
-        if a.get("type") != "Run":
+        if a.get("sport_type", a.get("type", "")) != "Run":
             continue
         runs.append({
             "date"            : pd.to_datetime(a["start_date"]),
