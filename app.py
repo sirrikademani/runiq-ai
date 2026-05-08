@@ -313,12 +313,6 @@ if "runs" not in st.session_state:
         athlete    = fetch_athlete(access_token)
         runs       = build_dataframe(activities)
 
-        # Debug — show what came back
-        st.write(f"Activities fetched: {len(activities)}")
-        st.write(f"Runs after filtering: {len(runs)}")
-        if activities:
-            st.write(f"Sample sport_types: {[a.get('sport_type', a.get('type','?')) for a in activities[:5]]}")
-
         if runs.empty:
             st.error("No runs found! Check token or activity types.")
             st.stop()
