@@ -74,10 +74,7 @@ def build_dataframe(activities: list) -> pd.DataFrame:
     """Convert raw Strava API activities to clean DataFrame."""
     
     # Debug — show what we got
-    st.write(f"Total activities fetched: {len(activities)}")
     if activities:
-        st.write(f"First activity type: {type(activities[0])}")
-        st.write(f"First activity sample: {activities[0]}")
     
     runs = []
     for a in activities:
@@ -327,10 +324,7 @@ if "runs" not in st.session_state:
         runs       = build_dataframe(activities)
 
         # Debug — show what came back
-        st.write(f"Activities fetched: {len(activities)}")
-        st.write(f"Runs after filtering: {len(runs)}")
         if activities:
-            st.write(f"Sample sport_types: {[a.get('sport_type', a.get('type','?')) for a in activities[:5]]}")
 
         if runs.empty:
             st.error("No runs found! Check token or activity types.")
@@ -344,71 +338,3 @@ show_dashboard(
     st.session_state["athlete"],
     client
 )
-
-# Check for OAuth callback code in URL
-params = st.query_params
-code   = params.get("code")
-
-if "athlete" not in st.session_state:
-
-    if code:
-        # Exchange code for token
-        with st.spinner("Connecting to Strava..."):
-            token_data = exchange_token(code)
-
-        if "access_token" in token_data:
-            access_token = token_data["access_token"]
-            with st.spinner("Fetching your activities... (this may take a moment)"):
-                activities = fetch_activities(access_token)
-                athlete    = fetch_athlete(access_token)
-                runs       = build_dataframe(activities)
-
-            if runs.empty:
-                st.error("No runs found on your Strava account!")
-            else:
-                st.session_state["athlete"]      = athlete
-                st.session_state["runs"]         = runs
-                st.session_state["access_token"] = access_token
-                st.query_params.clear()
-                st.rerun()
-        else:
-            st.error("Failed to connect to Strava. Please try again.")
-            st.json(token_data)
-    else:
-        # Show login page
-        st.title("🏃 RunIQ AI")
-        st.subheader("Your personal AI running coach")
-        st.write("")
-        st.write("Connect your Strava account to get:")
-        st.write("✅ AI-powered insights from your run history")
-        st.write("✅ Overtraining detection with ATL/CTL/TSB analysis")
-        st.write("✅ Race finish time predictions")
-        st.write("✅ Interactive training dashboard")
-        st.write("")
-        auth_url = get_auth_url()
-        st.markdown(f"""
-        <a href="{auth_url}" target="_self" style="
-            display: inline-block;
-            background-color: #FC4C02;
-            color: white;
-            padding: 14px 28px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 18px;
-            font-weight: bold;
-            font-family: sans-serif;
-        ">
-            🏃 Connect with Strava
-        </a>
-        """, unsafe_allow_html=True)
-        st.caption("We never store your data. Everything is processed in memory.")
-
-else:
-    # Already authenticated — show dashboard
-    show_dashboard(
-        st.session_state["runs"],
-        st.session_state["athlete"],
-        client
-    )
-
-
