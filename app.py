@@ -352,9 +352,18 @@ if "athlete" not in st.session_state:
         st.write("")
         auth_url = get_auth_url()
         st.markdown(f"""
-        <a href="{auth_url}" target="_self">
-            <img src="https://www.strava.com/images/api_logo_pwrdBy_strava_horiz_white.png" 
-                 style="background:#FC4C02;padding:10px;border-radius:8px;width:200px"/>
+        <a href="{auth_url}" target="_self" style="
+            display: inline-block;
+            background-color: #FC4C02;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: sans-serif;
+        ">
+            🏃 Connect with Strava
         </a>
         """, unsafe_allow_html=True)
         st.caption("We never store your data. Everything is processed in memory.")
