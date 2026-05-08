@@ -308,7 +308,22 @@ def show_dashboard(runs: pd.DataFrame, athlete: dict, client: Groq):
                 st.plotly_chart(fig6, use_container_width=True)
 
 # ── Main app logic ─────────────────────────────────────────────────────────────
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client       = Groq(api_key=os.getenv("GROQ_API_KEY"))
+access_token = os.getenv("STRAVA_ACCESS_TOKEN")
+
+if "runs" not in st.session_state:
+    with st.spinner("Loading your Strava data..."):
+        activities = fetch_activities(access_token)
+        athlete    = fetch_athlete(access_token)
+        runs       = build_dataframe(activities)
+        st.session_state["runs"]    = runs
+        st.session_state["athlete"] = athlete
+
+show_dashboard(
+    st.session_state["runs"],
+    st.session_state["athlete"],
+    client
+)
 
 # Check for OAuth callback code in URL
 params = st.query_params
