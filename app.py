@@ -72,8 +72,17 @@ def fetch_athlete(access_token: str) -> dict:
 #In-memory pipeline
 def build_dataframe(activities: list) -> pd.DataFrame:
     """Convert raw Strava API activities to clean DataFrame."""
+    
+    # Debug — show what we got
+    st.write(f"Total activities fetched: {len(activities)}")
+    if activities:
+        st.write(f"First activity type: {type(activities[0])}")
+        st.write(f"First activity sample: {activities[0]}")
+    
     runs = []
     for a in activities:
+        if not isinstance(a, dict):
+            continue
         if a.get("sport_type", a.get("type", "")) != "Run":
             continue
         runs.append({
