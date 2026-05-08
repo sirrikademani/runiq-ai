@@ -22,25 +22,27 @@ st.set_page_config(
 # Load data and models (cached so it only loads once)
 @st.cache_resource
 def load_resources():
-    runs  = pd.read_parquet("/Users/sirikademani/runiq-ai/data/runs_clean.parquet")
-    db    = lancedb.connect("/Users/sirikademani/runiq-ai/data/lancedb")
-    table = db.open_table("runs")
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    runs   = pd.read_parquet("/Users/sirikademani/runiq-ai/data/runs_clean.parquet")
+    db     = lancedb.connect("/Users/sirikademani/runiq-ai/data/lancedb")
+    table  = db.open_table("runs")
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    return runs, table, model, client
+    return runs, table, client
 
-runs, table, model, client = load_resources()
+runs, table, client = load_resources()
 
 #The 3 tools
 def tool_search_runs(question: str, n: int = 5) -> str:
-    vector  = model.encode([question])[0].tolist()
-    results = table.search(vector).limit(n).to_list()
+    # Keyword search over text summaries
+    keywords = question.lower().split()
+    results  = []
+    for _, row in runs.iterrows():
+        score = sum(1 for kw in keywords if kw in row["text_summary"].lower())
+        if score > 0:
+            results.append((score, row["text_summary"]))
+    results  = sorted(results, reverse=True)[:n]
     if not results:
         return "No matching runs found."
-    output = f"Found {len(results)} relevant runs:\n\n"
-    for r in results:
-        output += f"- {r['text']}\n"
-    return output
+    return "Found relevant runs:\n\n" + "\n".join(f"- {r[1]}" for r in results)
 
 def tool_overtraining_check() -> str:
     recent         = runs.sort_values("date").tail(14)

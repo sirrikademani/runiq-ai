@@ -2,7 +2,6 @@ pandas
 numpy
 pyarrow
 lancedb
-sentence-transformers
 groq
 python-dotenv
 streamlit
