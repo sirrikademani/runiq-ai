@@ -107,9 +107,17 @@ The pipeline (`src/pipeline.ipynb`) processes raw Strava CSV data through:
 - *"Should I run a race this weekend?"*
 
 ---
-
 ## Built by
-
 **Siri Kademani** — Data Scientist  
 [GitHub](https://github.com/sirrikademani)
 
+---
+
+## How it was built
+This project was built using **Claude (Anthropic)** as an AI pair programmer — 
+guiding architecture decisions, debugging errors, and writing code collaboratively. 
+All data, design decisions, and domain knowledge (running metrics, training load 
+theory, deployment) were driven by the author.
+
+This reflects a modern AI-assisted development workflow where the human provides 
+direction, context, and judgment — and AI accelerates execution.
