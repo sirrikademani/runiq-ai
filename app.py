@@ -97,7 +97,7 @@ def build_dataframe(activities: list) -> pd.DataFrame:
 
     df = pd.DataFrame(runs).sort_values("date").reset_index(drop=True)
     df["pace_min_per_km"] = df["moving_time_min"] / df["distance_km"]
-    df["load"] = df["training_load"].fillna(df["moving_time_min"] * 0.5)
+    df["load"] = df["training_load"].fillna(df["moving_time_min"] * 0.5) * 4
 
     daily = df.set_index("date")["load"].resample("D").sum()
     full_idx = pd.date_range(daily.index.min(), daily.index.max(), freq="D")
