@@ -5,7 +5,6 @@ import lancedb
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sentence_transformers import SentenceTransformer
 from groq import Groq
 from dotenv import load_dotenv
 
