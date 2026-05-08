@@ -161,20 +161,39 @@ def tool_overtraining_check(runs: pd.DataFrame) -> str:
     """.strip()
 
 def tool_predict_race(distance_km: float, runs: pd.DataFrame) -> str:
-    recent          = runs[runs["distance_km"] > 1].tail(30)
-    best_pace       = recent["pace_min_per_km"].min()
-    avg_pace        = recent["pace_min_per_km"].mean()
+    # Filter to runs close to the target distance for more accurate prediction
+    if distance_km <= 5:
+        relevant = runs[(runs["distance_km"] >= 4) & (runs["distance_km"] <= 7)]
+    elif distance_km <= 10:
+        relevant = runs[(runs["distance_km"] >= 8) & (runs["distance_km"] <= 12)]
+    elif distance_km <= 21.1:
+        relevant = runs[(runs["distance_km"] >= 15) & (runs["distance_km"] <= 25)]
+    else:
+        relevant = runs[runs["distance_km"] >= 30]
+
+    # Fall back to all runs if not enough relevant ones
+    if len(relevant) < 3:
+        relevant = runs[runs["distance_km"] > 1].tail(30)
+
+    best_pace      = relevant["pace_min_per_km"].min()
+    avg_pace       = relevant["pace_min_per_km"].mean()
     fatigue_factors = {5: 0.95, 10: 0.98, 21.1: 1.08, 42.2: 1.20}
-    closest         = min(fatigue_factors.keys(), key=lambda x: abs(x - distance_km))
-    predicted_pace  = best_pace * fatigue_factors[closest]
-    total_min       = predicted_pace * distance_km
-    h, m, s         = int(total_min // 60), int(total_min % 60), int((total_min * 60) % 60)
+    closest        = min(fatigue_factors.keys(), key=lambda x: abs(x - distance_km))
+    predicted_pace = best_pace * fatigue_factors[closest]
+    total_min      = predicted_pace * distance_km
+    h, m, s        = int(total_min // 60), int(total_min % 60), int((total_min * 60) % 60)
+
+    best_min = int(best_pace)
+    best_sec = int((best_pace - best_min) * 60)
+
     return f"""
     Race Prediction for {distance_km}km:
-    - Best recent pace:    {best_pace:.2f} min/km
-    - Predicted pace:      {predicted_pace:.2f} min/km
-    - Predicted time:      {h}h {m}m {s}s
-    - Current TSB:         {runs.iloc[-1]['tsb']:.1f} ({'rest first!' if runs.iloc[-1]['tsb'] < -20 else 'okay to race'})
+    - Best pace from similar distance runs: {best_min}:{best_sec:02d} min/km
+    - Avg pace from similar distance runs:  {avg_pace:.2f} min/km
+    - Predicted race pace:  {predicted_pace:.2f} min/km
+    - Predicted finish time: {h}h {m}m {s}s
+    - Based on {len(relevant)} similar distance runs
+    - Current TSB: {runs.iloc[-1]['tsb']:.1f} ({'rest first!' if runs.iloc[-1]['tsb'] < -20 else 'okay to race'})
     """.strip()
 
 def agent(question: str, runs: pd.DataFrame, client: Groq) -> str:
