@@ -72,10 +72,6 @@ def fetch_athlete(access_token: str) -> dict:
 #In-memory pipeline
 def build_dataframe(activities: list) -> pd.DataFrame:
     """Convert raw Strava API activities to clean DataFrame."""
-    
-    # Debug — show what we got
-    if activities:
-    
     runs = []
     for a in activities:
         if not isinstance(a, dict):
@@ -100,14 +96,9 @@ def build_dataframe(activities: list) -> pd.DataFrame:
         return pd.DataFrame()
 
     df = pd.DataFrame(runs).sort_values("date").reset_index(drop=True)
-
-    # Pace
     df["pace_min_per_km"] = df["moving_time_min"] / df["distance_km"]
-
-    # Load fallback
     df["load"] = df["training_load"].fillna(df["moving_time_min"] * 0.5)
 
-    # ATL / CTL / TSB
     daily = df.set_index("date")["load"].resample("D").sum()
     full_idx = pd.date_range(daily.index.min(), daily.index.max(), freq="D")
     daily = daily.reindex(full_idx, fill_value=0)
@@ -120,15 +111,13 @@ def build_dataframe(activities: list) -> pd.DataFrame:
     df["ctl"]     = date_keys.map(ctl).round(1)
     df["tsb"]     = date_keys.map(tsb).round(1)
 
-    # Overtraining
-    df["atl_ctl_ratio"]    = (df["atl"] / df["ctl"].replace(0, np.nan)).round(2)
-    conditions             = [
+    df["atl_ctl_ratio"] = (df["atl"] / df["ctl"].replace(0, np.nan)).round(2)
+    conditions = [
         (df["atl_ctl_ratio"] > 1.3) | (df["tsb"] < -20),
         (df["atl_ctl_ratio"] > 1.1) | (df["tsb"] < -10),
     ]
     df["overtraining_risk"] = np.select(conditions, ["high","moderate"], default="low")
 
-    # Text summaries
     def summarize(row):
         hr  = f"HR {row['avg_hr']:.0f}bpm" if pd.notna(row["avg_hr"]) else "no HR"
         cal = f"{row['calories']:.0f} cal"  if pd.notna(row["calories"]) else "unknown cal"
@@ -141,6 +130,7 @@ def build_dataframe(activities: list) -> pd.DataFrame:
         )
     df["text_summary"] = df.apply(summarize, axis=1)
     return df
+
 
 #Tools
 def tool_search_runs(question: str, runs: pd.DataFrame, n: int = 5) -> str:
@@ -160,15 +150,15 @@ def tool_overtraining_check(runs: pd.DataFrame) -> str:
     recent          = runs.tail(14)
     high_risk_count = (recent["overtraining_risk"] == "high").sum()
     return f"""
-Training Load Analysis:
-- ATL (fatigue):  {latest['atl']:.1f}
-- CTL (fitness):  {latest['ctl']:.1f}
-- TSB (form):     {latest['tsb']:.1f}
-- ATL/CTL ratio:  {latest['atl_ctl_ratio']:.2f}
-- Risk level:     {latest['overtraining_risk'].upper()}
-- High risk runs (last 14): {high_risk_count}/14
-- Verdict: {'Very fatigued — rest recommended' if latest['tsb'] < -20 else 'Moderately fatigued' if latest['tsb'] < -10 else 'Good form'}
-""".strip()
+    Training Load Analysis:
+    - ATL (fatigue):  {latest['atl']:.1f}
+    - CTL (fitness):  {latest['ctl']:.1f}
+    - TSB (form):     {latest['tsb']:.1f}
+    - ATL/CTL ratio:  {latest['atl_ctl_ratio']:.2f}
+    - Risk level:     {latest['overtraining_risk'].upper()}
+    - High risk runs (last 14): {high_risk_count}/14
+    - Verdict: {'Very fatigued — rest recommended' if latest['tsb'] < -20 else 'Moderately fatigued' if latest['tsb'] < -10 else 'Good form'}
+    """.strip()
 
 def tool_predict_race(distance_km: float, runs: pd.DataFrame) -> str:
     recent          = runs[runs["distance_km"] > 1].tail(30)
@@ -180,21 +170,21 @@ def tool_predict_race(distance_km: float, runs: pd.DataFrame) -> str:
     total_min       = predicted_pace * distance_km
     h, m, s         = int(total_min // 60), int(total_min % 60), int((total_min * 60) % 60)
     return f"""
-Race Prediction for {distance_km}km:
-- Best recent pace:    {best_pace:.2f} min/km
-- Predicted pace:      {predicted_pace:.2f} min/km
-- Predicted time:      {h}h {m}m {s}s
-- Current TSB:         {runs.iloc[-1]['tsb']:.1f} ({'rest first!' if runs.iloc[-1]['tsb'] < -20 else 'okay to race'})
-""".strip()
+    Race Prediction for {distance_km}km:
+    - Best recent pace:    {best_pace:.2f} min/km
+    - Predicted pace:      {predicted_pace:.2f} min/km
+    - Predicted time:      {h}h {m}m {s}s
+    - Current TSB:         {runs.iloc[-1]['tsb']:.1f} ({'rest first!' if runs.iloc[-1]['tsb'] < -20 else 'okay to race'})
+    """.strip()
 
 def agent(question: str, runs: pd.DataFrame, client: Groq) -> str:
     routing = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": f"""
-You are a running coach AI. User asked: "{question}"
-Tools: search_runs, overtraining, predict_race
-Reply ONLY with tool name. Use predict_race for race/finish time questions.
-"""}],
+    You are a running coach AI. User asked: "{question}"
+    Tools: search_runs, overtraining, predict_race
+    Reply ONLY with tool name. Use predict_race for race/finish time questions.
+    """}],
         max_tokens=10, temperature=0
     )
     tool = routing.choices[0].message.content.strip().lower()
@@ -215,11 +205,11 @@ Reply ONLY with tool name. Use predict_race for race/finish time questions.
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[{"role": "user", "content": f"""
-You are RunIQ, a friendly running coach AI.
-User asked: "{question}"
-Data: {result}
-Answer in 3-5 sentences. Be encouraging but honest.
-"""}],
+    You are RunIQ, a friendly running coach AI.
+    User asked: "{question}"
+    Data: {result}
+    Answer in 3-5 sentences. Be encouraging but honest.
+    """}],
         max_tokens=300, temperature=0.7
     )
     return response.choices[0].message.content.strip()
@@ -324,7 +314,10 @@ if "runs" not in st.session_state:
         runs       = build_dataframe(activities)
 
         # Debug — show what came back
+        st.write(f"Activities fetched: {len(activities)}")
+        st.write(f"Runs after filtering: {len(runs)}")
         if activities:
+            st.write(f"Sample sport_types: {[a.get('sport_type', a.get('type','?')) for a in activities[:5]]}")
 
         if runs.empty:
             st.error("No runs found! Check token or activity types.")
