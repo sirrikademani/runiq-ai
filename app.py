@@ -316,7 +316,7 @@ def show_dashboard(runs: pd.DataFrame, athlete: dict, client: Groq):
                 fig6.update_xaxes(autorange="reversed")
                 st.plotly_chart(fig6, use_container_width=True)
 
-# ── Main app logic ─────────────────────────────────────────────────────────────
+# ── Main app logic ─────────────────────────────────────────────────────────
 client       = Groq(api_key=os.getenv("GROQ_API_KEY"))
 access_token = os.getenv("STRAVA_ACCESS_TOKEN")
 
@@ -325,6 +325,17 @@ if "runs" not in st.session_state:
         activities = fetch_activities(access_token)
         athlete    = fetch_athlete(access_token)
         runs       = build_dataframe(activities)
+
+        # Debug — show what came back
+        st.write(f"Activities fetched: {len(activities)}")
+        st.write(f"Runs after filtering: {len(runs)}")
+        if activities:
+            st.write(f"Sample sport_types: {[a.get('sport_type', a.get('type','?')) for a in activities[:5]]}")
+
+        if runs.empty:
+            st.error("No runs found! Check token or activity types.")
+            st.stop()
+
         st.session_state["runs"]    = runs
         st.session_state["athlete"] = athlete
 
